@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VS10 — VideoSampler 10</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #cac6be;
+      --panel: #dedad4;
+      --panel-2: #c8c4bc;
+      --text: #1c1c1c;
+      --muted: #7a756e;
+      --accent: #d45f00;
+      --accent-2: #1a5a9a;
+      --danger: #b82020;
+      --line: #b0aca4;
+      --marker: #d45f00;
+      --pad-off: #c0bcb4;
+      --pad-on: #d45f00;
+      --record: #cc2020;
+      --ok: #2a6e38;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'IBM Plex Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: #b8b4ac;
+      color: var(--text);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 1.45fr 0.95fr;
+      gap: 10px;
+      padding: 10px;
+      min-height: 100vh;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid #a8a49c;
+      border-top-color: #eceae4;
+      border-left-color: #dedad4;
+      border-radius: 4px;
+      padding: 14px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.6),
+        0 2px 8px rgba(0,0,0,0.18),
+        0 1px 2px rgba(0,0,0,0.12);
+    }
+
+    h1, h2, h3 { margin: 0 0 8px 0; }
+    h1 {
+      font-family: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+    h2 {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 5px;
+      margin-bottom: 10px;
+    }
+    h3 { font-size: 11px; color: var(--muted); font-weight: 400; }
+    p, label, small, span, button, input, select { font: inherit; }
+    .muted { color: var(--muted); font-size: 11px; }
+    .tiny { font-size: 10px; color: var(--muted); }
+
+    .toolbar, .row, .controls, .timeline-controls {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* Physical button feel — light grey plastic */
+    button, .buttonish {
+      border: 1px solid #9c9890;
+      border-bottom-color: #888480;
+      background: linear-gradient(180deg, #d8d4cc 0%, #c4c0b8 100%);
+      color: var(--text);
+      padding: 6px 11px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      font-family: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
+      font-weight: 500;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      transition: background 0.06s, box-shadow 0.06s;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.7),
+        inset 0 -1px 0 rgba(0,0,0,0.1),
+        0 1px 3px rgba(0,0,0,0.2);
+    }
+    button:hover {
+      background: linear-gradient(180deg, #e0dcd4 0%, #ccc8c0 100%);
+    }
+    button:active {
+      background: linear-gradient(180deg, #b8b4ac 0%, #c4c0b8 100%);
+      box-shadow:
+        inset 0 1px 3px rgba(0,0,0,0.2),
+        0 1px 1px rgba(0,0,0,0.1);
+    }
+    /* Orange primary — Roland-style */
+    button.primary {
+      background: linear-gradient(180deg, #e87020 0%, #c85800 100%);
+      border-color: #a04800;
+      border-bottom-color: #803800;
+      color: #fff;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.25),
+        0 1px 3px rgba(0,0,0,0.3);
+    }
+    button.primary:hover {
+      background: linear-gradient(180deg, #f07828 0%, #d46008 100%);
+    }
+    button.primary:active {
+      background: linear-gradient(180deg, #b85000 0%, #c86008 100%);
+    }
+    button.good {
+      background: linear-gradient(180deg, #4a9060 0%, #387048 100%);
+      border-color: #2c6038;
+      color: #fff;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 1px 3px rgba(0,0,0,0.2);
+    }
+    button.good:hover {
+      background: linear-gradient(180deg, #58a070 0%, #428058 100%);
+    }
+    button.danger {
+      background: linear-gradient(180deg, #c83030 0%, #a02020 100%);
+      border-color: #801818;
+      color: #fff;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 1px 3px rgba(0,0,0,0.2);
+    }
+    button.danger:hover {
+      background: linear-gradient(180deg, #d83838 0%, #b02828 100%);
+    }
+    button.recording {
+      background: linear-gradient(180deg, #c82020 0%, #a01010 100%);
+      border-color: #801010;
+      color: #fff;
+      animation: rec-pulse 0.9s ease-in-out infinite;
+    }
+    @keyframes rec-pulse {
+      0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 1px 3px rgba(0,0,0,0.2); }
+      50%       { box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 0 8px rgba(200,32,32,0.5); }
+    }
+    button:disabled { cursor: default; opacity: 0.45; }
+
+    input[type="number"], input[type="text"], select {
+      background: #1a1c18;
+      color: #a8d890;
+      border: 1px solid #888480;
+      border-top-color: #686460;
+      border-radius: 2px;
+      padding: 5px 8px;
+      min-width: 70px;
+      width: 100%;
+      font-size: 11px;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.5);
+    }
+    input[type="number"]:focus, input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      color: #c8f0b0;
+    }
+    /* light text on dark LCD for select options */
+    select option { background: #1a1c18; color: #a8d890; }
+    input[type="file"] { max-width: 100%; font-size: 10px; color: var(--muted); background: none; border: none; box-shadow: none; padding: 0; }
+
+    .video-wrap {
+      position: relative;
+      background: #000;
+      border-radius: 2px;
+      overflow: hidden;
+      border: 1px solid #888480;
+      border-top-color: #686460;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.7);
+    }
+    video {
+      width: 100%;
+      max-height: 56vh;
+      display: block;
+      background: #000;
+    }
+
+    /* LCD readout — dark panel with green phosphor text */
+    .playhead-readout {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 10px 0 8px;
+      font-size: 12px;
+      flex-wrap: wrap;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      border: 1px solid #686460;
+      border-top-color: #504c48;
+      border-radius: 2px;
+      background: #181a14;
+      padding: 7px 12px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+    }
+    .playhead-readout span {
+      color: #a8d890;
+    }
+    .playhead-readout strong {
+      color: #506048;
+      font-weight: 400;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .timeline-shell {
+      display: grid;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .timeline {
+      position: relative;
+      height: 52px;
+      border-radius: 2px;
+      background: #181a14;
+      border: 1px solid #686460;
+      border-top-color: #504c48;
+      overflow: hidden;
+      cursor: crosshair;
+      user-select: none;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.6);
+    }
+
+    /* subtle graph-paper grid */
+    .timeline::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          90deg,
+          rgba(168,216,144,0.06) 0px,
+          rgba(168,216,144,0.06) 1px,
+          transparent 1px,
+          transparent 10%
+        ),
+        repeating-linear-gradient(
+          180deg,
+          transparent 0px,
+          transparent 25px,
+          rgba(168,216,144,0.06) 25px,
+          rgba(168,216,144,0.06) 26px
+        );
+      pointer-events: none;
+    }
+
+    .timeline-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      background: rgba(168,216,144,0.08);
+      pointer-events: none;
+    }
+
+    .playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: #a8d890;
+      box-shadow: 0 0 4px rgba(168,216,144,0.6);
+      pointer-events: none;
+    }
+
+    .marker {
+      position: absolute;
+      top: 5px;
+      width: 11px;
+      height: 40px;
+      margin-left: -5px;
+      border-radius: 1px;
+      background: var(--accent);
+      border: 1px solid #a04800;
+      cursor: grab;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 8px;
+      font-weight: 700;
+      z-index: 2;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    .marker.dragging {
+      cursor: grabbing;
+      opacity: 0.8;
+    }
+
+    .marker.unassigned {
+      background: #6a6660;
+      border-color: #888480;
+      border-style: dashed;
+      color: #b0aca4;
+      box-shadow: none;
+    }
+
+    .marker.selected {
+      outline: 2px solid #fff;
+      outline-offset: 1px;
+      z-index: 3;
+    }
+
+    .loop-region {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background: rgba(168,216,144,0.07);
+      border-left: 1px solid rgba(168,216,144,0.4);
+      border-right: 1px solid rgba(168,216,144,0.4);
+      pointer-events: none;
+      z-index: 1;
+      display: none;
+    }
+
+    /* PADS */
+    .pads {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .pad {
+      background: linear-gradient(180deg, #d0ccc4 0%, #b8b4ac 100%);
+      border: 1px solid #9c9890;
+      border-bottom-color: #7a7870;
+      border-radius: 3px;
+      padding: 8px;
+      min-height: 76px;
+      display: grid;
+      gap: 2px;
+      cursor: pointer;
+      text-align: left;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.6),
+        0 2px 4px rgba(0,0,0,0.18);
+      transition: background 0.05s, box-shadow 0.05s;
+    }
+    .pad:hover {
+      background: linear-gradient(180deg, #d8d4cc 0%, #c0bcb4 100%);
+    }
+    .pad:active, .pad.active {
+      background: var(--accent);
+      border-color: #904000;
+      border-bottom-color: #703000;
+      box-shadow:
+        inset 0 2px 4px rgba(0,0,0,0.2),
+        0 1px 2px rgba(0,0,0,0.15);
+    }
+    .pad .key {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .pad.active .key { color: #fff; }
+    .pad .label { font-size: 10px; color: var(--text); }
+    .pad.active .label { color: rgba(255,255,255,0.9); }
+    .pad .meta { color: var(--muted); font-size: 9px; }
+    .pad.active .meta { color: rgba(255,255,255,0.7); }
+    .pad.unassigned { opacity: 0.55; }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .marker-list {
+      display: grid;
+      gap: 4px;
+      max-height: 260px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .sequence-list {
+      display: grid;
+      gap: 4px;
+      max-height: 260px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      border-top-color: #ccc8c0;
+      border-radius: 2px;
+      background: #d4d0c8;
+      padding: 7px 9px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+    }
+
+    .item.selected {
+      border-color: var(--accent);
+      background: #dedad4;
+    }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 3px;
+      flex-wrap: wrap;
+    }
+
+    .step-grid {
+      display: grid;
+      grid-template-columns: 1fr 130px;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .footer-note {
+      margin-top: 8px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      background: #cac6be;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+    }
+    .footer-note strong { color: var(--text); }
+
+    .record-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--record);
+      box-shadow: 0 0 4px rgba(200,32,32,0.7);
+      vertical-align: middle;
+      margin-right: 5px;
+    }
+
+    .ok-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ok);
+      vertical-align: middle;
+      margin-right: 5px;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .label-row .sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 10px 0;
+    }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #b8b4ac; }
+    ::-webkit-scrollbar-thumb { background: #9c9890; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; }
+      .pads { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .step-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="panel">
+      <div class="toolbar" style="justify-content: space-between; margin-bottom: 10px;">
+        <div>
+          <div class="label-row">
+            <h1>VS10</h1>
+            <span class="sub">VideoSampler 10</span>
+          </div>
+        </div>
+        <div class="row">
+          <input id="fileInput" type="file" accept="video/*" />
+          <button id="loadDemoSlicesBtn">Auto-slice 10</button>
+        </div>
+      </div>
+
+      <div class="video-wrap">
+        <video id="video" playsinline preload="auto" controls></video>
+      </div>
+
+      <div class="controls" style="margin-top: 10px;">
+        <button id="playBtn" class="primary">▶ Play</button>
+        <button id="pauseBtn">⏸ Pause</button>
+        <hr class="divider" style="height: 24px; border: none; border-left: 1px solid #2a2a2a; margin: 0 2px;" />
+        <button id="addMarkerBtn">+ Marker</button>
+        <button id="jumpBackBtn">-1s</button>
+        <button id="jumpBackSmBtn">-0.1s</button>
+        <button id="jumpFwdSmBtn">+0.1s</button>
+        <button id="jumpFwdBtn">+1s</button>
+        <label class="buttonish">Stop at end <input id="stopAtEndCheckbox" type="checkbox" checked style="margin-left: 6px; vertical-align: middle;" /></label>
+        <label class="buttonish">Loop cue <input id="loopSelectedCheckbox" type="checkbox" style="margin-left: 6px; vertical-align: middle;" /></label>
+      </div>
+
+      <div class="playhead-readout">
+        <div><strong>Pos</strong> <span id="currentTimeText">0.000</span>s</div>
+        <div><strong>Dur</strong> <span id="durationText">0.000</span>s</div>
+        <div><strong>Status</strong> <span id="statusText" style="color: var(--muted);">Idle</span></div>
+        <div><strong>Jam</strong> <span id="recordingText">—</span></div>
+      </div>
+
+      <div class="timeline-shell">
+        <div class="timeline-controls">
+          <span class="muted">Click to seek · Shift+click to add marker · Drag marker to move</span>
+        </div>
+        <div id="timeline" class="timeline">
+          <div id="timelineFill" class="timeline-fill"></div>
+          <div id="loopRegion" class="loop-region"></div>
+          <div id="playhead" class="playhead"></div>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <div class="item-top">
+          <div>
+            <h2>Pads</h2>
+            <div class="muted">Keys 1–0 to trigger.</div>
+          </div>
+          <div class="row">
+            <button id="saveProjectBtn">Save Project</button>
+            <button id="loadProjectBtn">Load Project</button>
+            <input id="projectFileInput" type="file" accept="application/json,.json" style="display:none;" />
+          </div>
+        </div>
+        <div id="pads" class="pads"></div>
+      </div>
+    </section>
+
+    <aside class="stack">
+      <section class="panel">
+        <h2>Selected Marker</h2>
+        <div class="muted" style="margin-bottom: 10px;">Edit and assign the selected marker.</div>
+        <div id="emptyInspector" class="tiny">No marker selected.</div>
+        <div id="inspector" style="display: none;">
+          <div class="inspector-grid">
+            <label>Label<br /><input id="markerLabel" type="text" /></label>
+            <label>Pad / Key<br />
+              <select id="markerPadKey"></select>
+            </label>
+            <label>Start (s)<br /><input id="markerStart" type="number" min="0" step="0.001" /></label>
+            <label>Duration (s)<br /><input id="markerDuration" type="number" min="0.05" step="0.001" /></label>
+          </div>
+          <div class="row" style="margin-top: 10px;">
+            <button id="saveMarkerBtn" class="good">Save</button>
+            <button id="playMarkerBtn">Play Marker</button>
+            <button id="deleteMarkerBtn" class="danger">Delete</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Markers</h2>
+        <div id="markerList" class="marker-list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="item-top" style="margin-bottom: 10px;">
+          <div>
+            <h2>JamZone</h2>
+            <div class="muted">Record a live pad session and play it back.</div>
+          </div>
+          <div class="row">
+            <button id="playJamBtn" class="primary">▶ Play Jam</button>
+            <button id="stopJamPlaybackBtn">■ Stop</button>
+          </div>
+        </div>
+
+        <div class="row" style="margin-bottom: 10px;">
+          <button id="recordJamBtn"><span id="recordIndicatorWrap"></span>Record Jam</button>
+        </div>
+
+        <div id="recordedJamStatus" class="item">
+          <div class="item-top">
+            <strong style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent);">Buffer</strong>
+            <div id="recordedJamMeta" class="tiny">No jam recorded.</div>
+          </div>
+          <div id="recordedJamPreview" class="tiny">Hit Record, mash your pads, then Stop. Hit Play Jam to replay.</div>
+        </div>
+
+        <!--
+        SEQUENCE LIST — commented out, may restore later
+        <div id="sequenceList" class="sequence-list"></div>
+        -->
+
+        <div class="footer-note">
+          Keys: <strong>1–0</strong> pads &nbsp;·&nbsp; <strong>Space</strong> play &nbsp;·&nbsp; <strong>P</strong> pause &nbsp;·&nbsp; <strong>M</strong> marker &nbsp;·&nbsp; <strong>R</strong> rec toggle
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const fileInput = document.getElementById('fileInput');
+    const timeline = document.getElementById('timeline');
+    const timelineFill = document.getElementById('timelineFill');
+    const playhead = document.getElementById('playhead');
+    const loopRegion = document.getElementById('loopRegion');
+    const currentTimeText = document.getElementById('currentTimeText');
+    const durationText = document.getElementById('durationText');
+    const statusText = document.getElementById('statusText');
+    const recordingText = document.getElementById('recordingText');
+    const padsEl = document.getElementById('pads');
+    const markerListEl = document.getElementById('markerList');
+    const inspector = document.getElementById('inspector');
+    const emptyInspector = document.getElementById('emptyInspector');
+    const stopAtEndCheckbox = document.getElementById('stopAtEndCheckbox');
+    const loopSelectedCheckbox = document.getElementById('loopSelectedCheckbox');
+
+    const markerLabel = document.getElementById('markerLabel');
+    const markerPadKey = document.getElementById('markerPadKey');
+    const markerStart = document.getElementById('markerStart');
+    const markerDuration = document.getElementById('markerDuration');
+    const recordJamBtn = document.getElementById('recordJamBtn');
+    const recordedJamMeta = document.getElementById('recordedJamMeta');
+    const recordedJamPreview = document.getElementById('recordedJamPreview');
+    const recordIndicatorWrap = document.getElementById('recordIndicatorWrap');
+    const saveProjectBtn = document.getElementById('saveProjectBtn');
+    const loadProjectBtn = document.getElementById('loadProjectBtn');
+    const projectFileInput = document.getElementById('projectFileInput');
+
+    const PAD_KEYS = ['1','2','3','4','5','6','7','8','9','0'];
+
+    const state = {
+      markers: [],
+      selectedMarkerId: null,
+      sequence: [],
+      activePadKey: null,
+      cueTimeout: null,
+      sequenceTimeout: null,
+      sequenceRunning: false,
+      objectUrl: null,
+      rafId: null,
+      dragMarkerId: null,
+      isRecordingJam: false,
+      jamStartMs: 0,
+      jamEvents: [],
+      lastRecordedSequence: [],
+      lastJamEventMs: 0,
+      jamArmUntilMs: 0,
+      jamPlaybackTimeouts: [],
+      playingRecordedJam: false,
+      playheadMovedSinceSelect: false,
+    };
+
+    function uid() {
+      return Math.random().toString(36).slice(2, 9);
+    }
+
+    function fmtTime(sec) {
+      if (!Number.isFinite(sec)) return '0.000';
+      return Number(sec).toFixed(3);
+    }
+
+    function setStatus(text) {
+      statusText.textContent = text;
+    }
+
+    function setRecordingText(text, recording = false) {
+      recordingText.innerHTML = recording
+        ? `<span class="record-dot"></span>${text}`
+        : `<span class="ok-dot"></span>${text}`;
+      recordJamBtn.classList.toggle('recording', recording);
+      recordJamBtn.innerHTML = recording
+        ? `<span id="recordIndicatorWrap"><span class="record-dot"></span></span>Stop Recording`
+        : `<span id="recordIndicatorWrap"></span>Record Jam`;
+    }
+
+    function getDuration() {
+      return Number.isFinite(video.duration) ? video.duration : 0;
+    }
+
+    function sortedMarkers() {
+      return [...state.markers].sort((a, b) => a.start - b.start);
+    }
+
+    function getMarkerById(id) {
+      return state.markers.find(m => m.id === id) || null;
+    }
+
+    function getMarkerForPad(key) {
+      return state.markers.find(m => m.padKey === key) || null;
+    }
+
+    function clearCueTimeout() {
+      if (state.cueTimeout) {
+        clearTimeout(state.cueTimeout);
+        state.cueTimeout = null;
+      }
+    }
+
+    function clearSequenceTimeout() {
+      if (state.sequenceTimeout) {
+        clearTimeout(state.sequenceTimeout);
+        state.sequenceTimeout = null;
+      }
+    }
+
+    function clearJamPlaybackTimeouts() {
+      state.jamPlaybackTimeouts.forEach(t => clearTimeout(t));
+      state.jamPlaybackTimeouts = [];
+      state.playingRecordedJam = false;
+    }
+
+    function stopAll() {
+      state.sequenceRunning = false;
+      clearSequenceTimeout();
+      clearCueTimeout();
+      clearJamPlaybackTimeouts();
+      video.pause();
+      setStatus('Stopped');
+    }
+
+    async function seekNow(time) {
+      const duration = getDuration();
+      if (!duration) return;
+      const target = Math.max(0, Math.min(time, Math.max(0, duration - 0.001)));
+      if (typeof video.fastSeek === 'function') {
+        try { video.fastSeek(target); }
+        catch { video.currentTime = target; }
+      } else {
+        video.currentTime = target;
+      }
+    }
+
+    function updateLoopOverlay(marker) {
+      const duration = getDuration();
+      if (!loopSelectedCheckbox.checked || !marker || !duration) {
+        loopRegion.style.display = 'none';
+        return;
+      }
+      const left = (marker.start / duration) * 100;
+      const width = (Math.max(0.01, marker.duration) / duration) * 100;
+      loopRegion.style.left = `${left}%`;
+      loopRegion.style.width = `${width}%`;
+      loopRegion.style.display = 'block';
+    }
+
+    async function triggerMarker(marker, { fromSequence = false, fromLoop = false } = {}) {
+      if (!marker || !getDuration()) return;
+      clearCueTimeout();
+      if (!fromSequence) {
+        state.sequenceRunning = false;
+        clearSequenceTimeout();
+      }
+
+      state.activePadKey = marker.padKey || null;
+      renderPads();
+      updateLoopOverlay(marker);
+      setStatus(`Cue ${marker.label} @ ${fmtTime(marker.start)}s`);
+
+      await seekNow(marker.start);
+
+      try {
+        await video.play();
+      } catch (err) {
+        console.warn('Playback error', err);
+      }
+
+      const stopAfterMs = Math.max(10, Math.round((marker.duration || 0) * 1000));
+      state.cueTimeout = setTimeout(() => {
+        const selected = getMarkerById(state.selectedMarkerId);
+        const shouldLoop = loopSelectedCheckbox.checked && selected && selected.id === marker.id && !state.sequenceRunning;
+        if (shouldLoop) {
+          triggerMarker(marker, { fromLoop: true });
+          return;
+        }
+        if (stopAtEndCheckbox.checked && !state.sequenceRunning) {
+          video.pause();
+          if (!fromLoop) setStatus(`Cue ended: ${marker.label}`);
+        }
+      }, stopAfterMs);
+    }
+
+    function renderPads() {
+      padsEl.innerHTML = '';
+      PAD_KEYS.forEach(key => {
+        const marker = getMarkerForPad(key);
+        const pad = document.createElement('button');
+        pad.className = 'pad' + (marker ? '' : ' unassigned') + (state.activePadKey === key ? ' active' : '');
+        pad.type = 'button';
+        pad.innerHTML = `
+          <div class="key">${key}</div>
+          <div class="label">${marker ? escapeHtml(marker.label) : 'Unassigned'}</div>
+          <div class="meta">${marker ? `${fmtTime(marker.start)}s / ${fmtTime(marker.duration)}s` : '—'}</div>
+        `;
+        pad.addEventListener('click', () => {
+          if (marker) triggerPad(marker, key, 'click');
+        });
+        padsEl.appendChild(pad);
+      });
+
+      const options = ['<option value="">— no pad —</option>']
+        .concat(PAD_KEYS.map(k => {
+          const m = getMarkerForPad(k);
+          return `<option value="${k}">${k}${m ? ` — ${escapeHtml(m.label)}` : ''}</option>`;
+        }));
+      markerPadKey.innerHTML = options.join('');
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function renderTimeline() {
+      timeline.querySelectorAll('.marker').forEach(el => el.remove());
+      const duration = getDuration();
+      const progress = duration ? (video.currentTime / duration) * 100 : 0;
+      timelineFill.style.width = `${progress}%`;
+      playhead.style.left = `${progress}%`;
+      updateLoopOverlay(getMarkerById(state.selectedMarkerId));
+
+      if (!duration) return;
+      sortedMarkers().forEach(marker => {
+        const el = document.createElement('div');
+        el.className = 'marker'
+          + (marker.id === state.selectedMarkerId ? ' selected' : '')
+          + (state.dragMarkerId === marker.id ? ' dragging' : '')
+          + (!marker.padKey ? ' unassigned' : '');
+        el.style.left = `${(marker.start / duration) * 100}%`;
+        el.title = `${marker.label} (${fmtTime(marker.start)}s)`;
+        el.textContent = marker.padKey || '·';
+
+        el.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          state.dragMarkerId = marker.id;
+          el.setPointerCapture(e.pointerId);
+          selectMarker(marker.id);
+        });
+
+        el.addEventListener('pointermove', (e) => {
+          if (state.dragMarkerId !== marker.id) return;
+          const time = getTimelineTimeFromClientX(e.clientX);
+          marker.start = Math.max(0, Math.min(time, Math.max(0, getDuration() - 0.001)));
+          markerStart.value = fmtTime(marker.start);
+          renderTimeline();
+          renderMarkerList();
+        });
+
+        const endDrag = () => {
+          if (state.dragMarkerId === marker.id) {
+            state.dragMarkerId = null;
+            renderAll();
+          }
+        };
+        el.addEventListener('pointerup', endDrag);
+        el.addEventListener('pointercancel', endDrag);
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectMarker(marker.id);
+        });
+        timeline.appendChild(el);
+      });
+    }
+
+    function renderMarkerList() {
+      markerListEl.innerHTML = '';
+      sortedMarkers().forEach(marker => {
+        const item = document.createElement('div');
+        item.className = 'item' + (marker.id === state.selectedMarkerId ? ' selected' : '');
+        item.innerHTML = `
+          <div class="item-top">
+            <strong style="font-size:11px;">${escapeHtml(marker.label)}</strong>
+            <div class="tiny">${marker.padKey || '—'}</div>
+          </div>
+          <div class="tiny">${fmtTime(marker.start)}s &nbsp;/&nbsp; ${fmtTime(marker.duration)}s dur</div>
+        `;
+        item.addEventListener('click', () => selectMarker(marker.id));
+        markerListEl.appendChild(item);
+      });
+      if (!state.markers.length) {
+        markerListEl.innerHTML = '<div class="tiny">No markers yet.</div>';
+      }
+    }
+
+    function renderInspector() {
+      const marker = getMarkerById(state.selectedMarkerId);
+      if (!marker) {
+        inspector.style.display = 'none';
+        emptyInspector.style.display = 'block';
+        updateLoopOverlay(null);
+        return;
+      }
+      emptyInspector.style.display = 'none';
+      inspector.style.display = 'block';
+      markerLabel.value = marker.label;
+      markerPadKey.value = marker.padKey || '';
+      markerStart.value = fmtTime(marker.start);
+      markerDuration.value = fmtTime(marker.duration);
+      updateLoopOverlay(marker);
+    }
+
+    function renderRecordedJamStatus() {
+      const steps = state.lastRecordedSequence.length;
+      if (!steps) {
+        recordedJamMeta.textContent = 'No jam recorded.';
+        recordedJamPreview.textContent = 'Hit Record, mash your pads, then Stop. Hit Play Jam to replay.';
+        document.getElementById('playJamBtn').disabled = true;
+        return;
+      }
+      const total = state.lastRecordedSequence.reduce((sum, step) => sum + (Number(step.duration) || 0), 0);
+      recordedJamMeta.textContent = `${steps} hits · ${fmtTime(total)}s`;
+      recordedJamPreview.textContent = state.lastRecordedSequence
+        .slice(0, 16)
+        .map((step) => `${step.padKey || '?'}`)
+        .join(' · ');
+      document.getElementById('playJamBtn').disabled = false;
+    }
+
+    function renderAll() {
+      currentTimeText.textContent = fmtTime(video.currentTime || 0);
+      durationText.textContent = fmtTime(getDuration());
+      renderTimeline();
+      renderPads();
+      renderMarkerList();
+      renderInspector();
+      renderRecordedJamStatus();
+    }
+
+    function selectMarker(id) {
+      state.selectedMarkerId = id;
+      state.playheadMovedSinceSelect = false;
+      renderAll();
+    }
+
+    function addMarkerAt(time, opts = {}) {
+      const duration = getDuration();
+      if (!duration) return;
+      const start = Math.max(0, Math.min(time, Math.max(0, duration - 0.001)));
+      const marker = {
+        id: uid(),
+        label: opts.label || `Marker ${state.markers.length + 1}`,
+        padKey: opts.padKey || '',
+        start,
+        duration: opts.duration || 1,
+      };
+      state.markers.push(marker);
+      selectMarker(marker.id);
+      renderAll();
+    }
+
+    function clearPadAssignmentConflicts(markerId, padKey) {
+      state.markers.forEach(m => {
+        if (m.id !== markerId && m.padKey === padKey) {
+          m.padKey = '';
+        }
+      });
+    }
+
+    function saveSelectedMarker() {
+      const marker = getMarkerById(state.selectedMarkerId);
+      if (!marker) return;
+      marker.label = markerLabel.value.trim() || marker.label;
+      marker.start = Math.max(0, Number(markerStart.value) || 0);
+      marker.duration = Math.max(0.05, Number(markerDuration.value) || 1);
+      marker.padKey = markerPadKey.value;
+      if (marker.padKey) clearPadAssignmentConflicts(marker.id, marker.padKey);
+      renderAll();
+    }
+
+    function deleteSelectedMarker() {
+      const id = state.selectedMarkerId;
+      if (!id) return;
+      state.markers = state.markers.filter(m => m.id !== id);
+      state.sequence = state.sequence.filter(step => step.markerId !== id);
+      state.selectedMarkerId = null;
+      renderAll();
+    }
+
+    function addAutoSlices() {
+      const duration = getDuration();
+      if (!duration) return;
+      state.markers = [];
+      state.sequence = [];
+      state.selectedMarkerId = null;
+      const sliceCount = 10;
+      const step = duration / sliceCount;
+      PAD_KEYS.forEach((key, i) => {
+        const start = i * step;
+        state.markers.push({
+          id: uid(),
+          label: `Slice ${key}`,
+          padKey: key,
+          start,
+          duration: Math.max(0.1, Math.min(1.5, step)),
+        });
+      });
+      renderAll();
+      setStatus('Auto-sliced into 10 pads');
+    }
+
+    // Sequence playback kept for jam playback
+    async function playSequenceAt(index = 0) {
+      if (!state.sequenceRunning) return;
+      if (index >= state.sequence.length) {
+        state.sequenceRunning = false;
+        setStatus('Jam playback complete');
+        return;
+      }
+      const step = state.sequence[index];
+      const marker = getMarkerById(step.markerId);
+      if (!marker) {
+        state.sequenceTimeout = setTimeout(() => playSequenceAt(index + 1), 10);
+        return;
+      }
+      const tempMarker = { ...marker, duration: step.duration };
+      await triggerMarker(tempMarker, { fromSequence: true });
+      state.sequenceTimeout = setTimeout(() => {
+        if (!state.sequenceRunning) return;
+        if (index < state.sequence.length - 1) {
+          playSequenceAt(index + 1);
+        } else {
+          state.sequenceRunning = false;
+          if (stopAtEndCheckbox.checked) video.pause();
+          setStatus('Jam playback complete');
+        }
+      }, Math.max(10, Math.round(step.duration * 1000)));
+    }
+
+    function getTimelineTimeFromClientX(clientX) {
+      const rect = timeline.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      return ratio * getDuration();
+    }
+
+    function getTimelineTimeFromEvent(e) {
+      return getTimelineTimeFromClientX(e.clientX);
+    }
+
+    function animationLoop() {
+      currentTimeText.textContent = fmtTime(video.currentTime || 0);
+      const duration = getDuration();
+      const progress = duration ? (video.currentTime / duration) * 100 : 0;
+      timelineFill.style.width = `${progress}%`;
+      playhead.style.left = `${progress}%`;
+      state.rafId = requestAnimationFrame(animationLoop);
+    }
+
+    function startJamRecording() {
+      state.isRecordingJam = true;
+      state.jamStartMs = performance.now();
+      state.jamEvents = [];
+      state.lastJamEventMs = 0;
+      state.jamArmUntilMs = state.jamStartMs + 40;
+      setRecordingText('Recording', true);
+      setStatus('Jam recording...');
+    }
+
+    function stopJamRecording() {
+      if (!state.isRecordingJam) return;
+      state.isRecordingJam = false;
+      state.lastRecordedSequence = buildSequenceFromJamEvents(state.jamEvents);
+      if (state.lastRecordedSequence.length) {
+        state.sequence = state.lastRecordedSequence.map(step => ({ ...step, id: uid() }));
+        setRecordingText(`${state.jamEvents.length} hits captured`, false);
+        setStatus(`Jam recorded: ${state.jamEvents.length} hits`);
+      } else {
+        setRecordingText('No hits captured', false);
+        setStatus('Jam stopped — no valid hits');
+      }
+      renderRecordedJamStatus();
+      // reset button label
+      recordJamBtn.innerHTML = `<span id="recordIndicatorWrap"></span>Record Jam`;
+      recordJamBtn.classList.remove('recording');
+    }
+
+    function toggleJamRecording() {
+      if (state.isRecordingJam) {
+        stopJamRecording();
+      } else {
+        startJamRecording();
+      }
+    }
+
+    function buildSequenceFromJamEvents(events) {
+      if (!events.length) return [];
+      return events.map((evt, index) => {
+        const next = events[index + 1];
+        const marker = getMarkerForPad(evt.padKey);
+        const fallbackDuration = marker?.duration || 0.25;
+        const duration = next
+          ? Math.max(0.01, (next.timeMs - evt.timeMs) / 1000)
+          : Math.max(0.01, fallbackDuration);
+        return {
+          id: uid(),
+          markerId: marker?.id || '',
+          duration,
+          offset: evt.timeMs / 1000,
+          padKey: evt.padKey,
+          source: evt.source || 'unknown',
+        };
+      }).filter(step => step.markerId);
+    }
+
+    async function playJam() {
+      if (!state.lastRecordedSequence.length) return;
+      stopAll();
+      state.sequenceRunning = true;
+      setStatus(`Playing jam (${state.lastRecordedSequence.length} hits)`);
+      state.sequence = state.lastRecordedSequence.map(step => ({ ...step, id: uid() }));
+      await playSequenceAt(0);
+    }
+
+    function recordPadTrigger(padKey) {
+      if (!state.isRecordingJam) return;
+      const now = performance.now();
+      if (now < state.jamArmUntilMs) return;
+      const timeMs = now - state.jamStartMs;
+      state.jamEvents.push({ padKey, timeMs, source: 'pad' });
+      state.lastJamEventMs = timeMs;
+      // update button label live
+      recordJamBtn.innerHTML = `<span id="recordIndicatorWrap"><span class="record-dot"></span></span>Stop Recording (${state.jamEvents.length})`;
+    }
+
+    function triggerPad(marker, padKey) {
+      recordPadTrigger(padKey);
+      triggerMarker(marker);
+    }
+
+    function saveProjectJson() {
+      const payload = {
+        version: 1,
+        markers: state.markers,
+        sequence: state.sequence,
+        lastRecordedSequence: state.lastRecordedSequence,
+        jamEvents: state.jamEvents,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'vs10_project.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus('Project saved');
+    }
+
+    async function loadProjectJson(file) {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      state.markers = Array.isArray(payload.markers) ? payload.markers : [];
+      state.sequence = Array.isArray(payload.sequence) ? payload.sequence : [];
+      state.lastRecordedSequence = Array.isArray(payload.lastRecordedSequence) ? payload.lastRecordedSequence : [];
+      state.jamEvents = Array.isArray(payload.jamEvents) ? payload.jamEvents : [];
+      state.selectedMarkerId = state.markers[0]?.id || null;
+      renderAll();
+      setStatus('Project loaded');
+    }
+
+    // --- Event listeners ---
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+      state.objectUrl = URL.createObjectURL(file);
+      video.src = state.objectUrl;
+      video.load();
+      setStatus(`Loaded: ${file.name}`);
+      state.markers = [];
+      state.sequence = [];
+      state.selectedMarkerId = null;
+      state.activePadKey = null;
+      state.lastRecordedSequence = [];
+      renderAll();
+    });
+
+    video.addEventListener('loadedmetadata', () => {
+      renderAll();
+      setStatus('Ready');
+    });
+
+    video.addEventListener('ended', () => {
+      if (!state.sequenceRunning) setStatus('Ended');
+    });
+
+    timeline.addEventListener('click', async (e) => {
+      if (state.dragMarkerId) return;
+      const time = getTimelineTimeFromEvent(e);
+      if (e.shiftKey) {
+        addMarkerAt(time);
+      } else {
+        state.selectedMarkerId = null;
+        state.playheadMovedSinceSelect = true;
+        await seekNow(time);
+        renderAll();
+      }
+    });
+
+    // Play button — seeks to selected marker start if not moved, then plays
+    document.getElementById('playBtn').addEventListener('click', async () => {
+      const selectedMarker = getMarkerById(state.selectedMarkerId);
+      if (selectedMarker && !state.playheadMovedSinceSelect) {
+        await seekNow(selectedMarker.start);
+      }
+      try { await video.play(); setStatus('Playing'); } catch {}
+    });
+
+    // Pause button — pauses at current position
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      video.pause();
+      setStatus('Paused');
+    });
+
+    document.getElementById('addMarkerBtn').addEventListener('click', () => addMarkerAt(video.currentTime || 0));
+    document.getElementById('jumpBackBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow((video.currentTime || 0) - 1); renderAll(); });
+    document.getElementById('jumpBackSmBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow((video.currentTime || 0) - 0.1); renderAll(); });
+    document.getElementById('jumpFwdSmBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow((video.currentTime || 0) + 0.1); renderAll(); });
+    document.getElementById('jumpFwdBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow((video.currentTime || 0) + 1); renderAll(); });
+    document.getElementById('saveMarkerBtn').addEventListener('click', saveSelectedMarker);
+    document.getElementById('deleteMarkerBtn').addEventListener('click', deleteSelectedMarker);
+    document.getElementById('playMarkerBtn').addEventListener('click', () => {
+      const marker = getMarkerById(state.selectedMarkerId);
+      if (marker) triggerMarker(marker);
+    });
+    document.getElementById('loadDemoSlicesBtn').addEventListener('click', addAutoSlices);
+    document.getElementById('playJamBtn').addEventListener('click', playJam);
+    document.getElementById('stopJamPlaybackBtn').addEventListener('click', stopAll);
+    recordJamBtn.addEventListener('click', toggleJamRecording);
+    saveProjectBtn.addEventListener('click', saveProjectJson);
+    loadProjectBtn.addEventListener('click', () => projectFileInput.click());
+    projectFileInput.addEventListener('change', async () => {
+      const file = projectFileInput.files?.[0];
+      if (!file) return;
+      try {
+        await loadProjectJson(file);
+      } catch (err) {
+        console.error(err);
+        setStatus('Failed to load project');
+      }
+      projectFileInput.value = '';
+    });
+    loopSelectedCheckbox.addEventListener('change', () => renderTimeline());
+    markerPadKey.addEventListener('change', saveSelectedMarker);
+    markerLabel.addEventListener('blur', saveSelectedMarker);
+
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+      if (PAD_KEYS.includes(e.key)) {
+        const marker = getMarkerForPad(e.key);
+        if (marker) {
+          e.preventDefault();
+          triggerPad(marker, e.key);
+        }
+      }
+      if (e.key === ' ') {
+        e.preventDefault();
+        const selectedMarker = getMarkerById(state.selectedMarkerId);
+        if (selectedMarker && !state.playheadMovedSinceSelect) seekNow(selectedMarker.start).then(() => video.play());
+        else video.play();
+      }
+      if (e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        video.pause();
+        setStatus('Paused');
+      }
+      if (e.key.toLowerCase() === 'm') addMarkerAt(video.currentTime || 0);
+      if (e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        toggleJamRecording();
+      }
+    });
+
+    renderRecordedJamStatus();
+    renderAll();
+    animationLoop();
+  </script>
+</body>
+</html>
