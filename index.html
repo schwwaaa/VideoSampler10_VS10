@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,13 +14,13 @@
       --panel-2: #c8c4bc;
       --text: #1c1c1c;
       --muted: #7a756e;
-      --accent: #d45f00;
+      --accent: #3a8fc0;
       --accent-2: #1a5a9a;
       --danger: #b82020;
       --line: #b0aca4;
-      --marker: #d45f00;
+      --marker: #3a8fc0;
       --pad-off: #c0bcb4;
-      --pad-on: #d45f00;
+      --pad-on: #3a8fc0;
       --record: #cc2020;
       --ok: #2a6e38;
     }
@@ -116,19 +117,19 @@
     }
     /* Orange primary — Roland-style */
     button.primary {
-      background: linear-gradient(180deg, #e87020 0%, #c85800 100%);
-      border-color: #a04800;
-      border-bottom-color: #803800;
+      background: linear-gradient(180deg, #4a9fd4 0%, #2878a8 100%);
+      border-color: #1c6090;
+      border-bottom-color: #145078;
       color: #fff;
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,0.25),
         0 1px 3px rgba(0,0,0,0.3);
     }
     button.primary:hover {
-      background: linear-gradient(180deg, #f07828 0%, #d46008 100%);
+      background: linear-gradient(180deg, #58add8 0%, #3488b8 100%);
     }
     button.primary:active {
-      background: linear-gradient(180deg, #b85000 0%, #c86008 100%);
+      background: linear-gradient(180deg, #206890 0%, #2878a8 100%);
     }
     button.good {
       background: linear-gradient(180deg, #4a9060 0%, #387048 100%);
@@ -293,7 +294,7 @@
       margin-left: -5px;
       border-radius: 1px;
       background: var(--accent);
-      border: 1px solid #a04800;
+      border: 1px solid #1c6090;
       cursor: grab;
       display: grid;
       place-items: center;
@@ -364,8 +365,8 @@
     }
     .pad:active, .pad.active {
       background: var(--accent);
-      border-color: #904000;
-      border-bottom-color: #703000;
+      border-color: #1c6090;
+      border-bottom-color: #145078;
       box-shadow:
         inset 0 2px 4px rgba(0,0,0,0.2),
         0 1px 2px rgba(0,0,0,0.15);
@@ -493,6 +494,39 @@
       margin: 10px 0;
     }
 
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: #b0aca4;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      cursor: pointer;
+      min-width: unset;
+      width: 100%;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #b8b4ac; }
     ::-webkit-scrollbar-thumb { background: #9c9890; border-radius: 2px; }
@@ -528,7 +562,7 @@
       <div class="controls" style="margin-top: 10px;">
         <button id="playBtn" class="primary">▶ Play</button>
         <button id="pauseBtn">⏸ Pause</button>
-        <hr class="divider" style="height: 24px; border: none; border-left: 1px solid #2a2a2a; margin: 0 2px;" />
+        <hr class="divider" style="height: 24px; border: none; border-left: 1px solid var(--line); margin: 0 2px;" />
         <button id="addMarkerBtn">+ Marker</button>
         <button id="jumpBackBtn">-1s</button>
         <button id="jumpBackSmBtn">-0.1s</button>
@@ -569,6 +603,9 @@
           </div>
         </div>
         <div id="pads" class="pads"></div>
+        <div style="margin-top: 8px; text-align: right;">
+          <span style="font-size: 9px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase;">an agamemnon juunes site</span>
+        </div>
       </div>
     </section>
 
@@ -583,8 +620,22 @@
             <label>Pad / Key<br />
               <select id="markerPadKey"></select>
             </label>
-            <label>Start (s)<br /><input id="markerStart" type="number" min="0" step="0.001" /></label>
-            <label>Duration (s)<br /><input id="markerDuration" type="number" min="0.05" step="0.001" /></label>
+          </div>
+          <div style="margin-top: 8px; display: grid; gap: 8px;">
+            <div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                <span class="tiny">Start (s)</span>
+                <input id="markerStart" type="number" min="0" step="0.001" style="width:80px; text-align:right;" />
+              </div>
+              <input id="markerStartSlider" type="range" min="0" step="0.001" style="width:100%; margin:0;" />
+            </div>
+            <div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                <span class="tiny">Duration (s)</span>
+                <input id="markerDuration" type="number" min="0.05" step="0.001" style="width:80px; text-align:right;" />
+              </div>
+              <input id="markerDurationSlider" type="range" min="0.05" step="0.001" style="width:100%; margin:0;" />
+            </div>
           </div>
           <div class="row" style="margin-top: 10px;">
             <button id="saveMarkerBtn" class="good">Save</button>
@@ -617,7 +668,7 @@
 
         <div id="recordedJamStatus" class="item">
           <div class="item-top">
-            <strong style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent);">Buffer</strong>
+            <strong style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-2);">Buffer</strong>
             <div id="recordedJamMeta" class="tiny">No jam recorded.</div>
           </div>
           <div id="recordedJamPreview" class="tiny">Hit Record, mash your pads, then Stop. Hit Play Jam to replay.</div>
@@ -687,6 +738,7 @@
       jamPlaybackTimeouts: [],
       playingRecordedJam: false,
       playheadMovedSinceSelect: false,
+      videoFileName: null,
     };
 
     function uid() {
@@ -842,6 +894,9 @@
           return `<option value="${k}">${k}${m ? ` — ${escapeHtml(m.label)}` : ''}</option>`;
         }));
       markerPadKey.innerHTML = options.join('');
+      // Restore selected marker's pad assignment after rebuilding options
+      const currentMarker = getMarkerById(state.selectedMarkerId);
+      if (currentMarker) markerPadKey.value = currentMarker.padKey || '';
     }
 
     function escapeHtml(str) {
@@ -938,6 +993,14 @@
       markerPadKey.value = marker.padKey || '';
       markerStart.value = fmtTime(marker.start);
       markerDuration.value = fmtTime(marker.duration);
+      // Sync sliders
+      const dur = getDuration() || 60;
+      const startSlider = document.getElementById('markerStartSlider');
+      const durSlider = document.getElementById('markerDurationSlider');
+      startSlider.max = fmtTime(dur);
+      startSlider.value = fmtTime(marker.start);
+      durSlider.max = fmtTime(Math.max(30, dur));
+      durSlider.value = fmtTime(marker.duration);
       updateLoopOverlay(marker);
     }
 
@@ -1171,6 +1234,7 @@
     function saveProjectJson() {
       const payload = {
         version: 1,
+        videoFileName: state.videoFileName || null,
         markers: state.markers,
         sequence: state.sequence,
         lastRecordedSequence: state.lastRecordedSequence,
@@ -1193,26 +1257,67 @@
       state.sequence = Array.isArray(payload.sequence) ? payload.sequence : [];
       state.lastRecordedSequence = Array.isArray(payload.lastRecordedSequence) ? payload.lastRecordedSequence : [];
       state.jamEvents = Array.isArray(payload.jamEvents) ? payload.jamEvents : [];
-      state.selectedMarkerId = state.markers[0]?.id || null;
+      state.selectedMarkerId = null;
+      state.activePadKey = null;
       renderAll();
-      setStatus('Project loaded');
+      const savedName = payload.videoFileName;
+      if (savedName) {
+        setStatus(`Project loaded — select video file: ${savedName}`);
+        // Prompt user to pick the video; we'll apply markers once it loads
+        state._pendingProjectLoad = true;
+        fileInput.click();
+      } else {
+        setStatus('Project loaded');
+      }
     }
 
     // --- Event listeners ---
+
+    // Slider sync — start
+    document.getElementById('markerStartSlider').addEventListener('input', (e) => {
+      markerStart.value = Number(e.target.value).toFixed(3);
+      const marker = getMarkerById(state.selectedMarkerId);
+      if (marker) { marker.start = Number(e.target.value); renderTimeline(); renderMarkerList(); updateLoopOverlay(marker); }
+    });
+    document.getElementById('markerStartSlider').addEventListener('change', saveSelectedMarker);
+
+    // Slider sync — duration
+    document.getElementById('markerDurationSlider').addEventListener('input', (e) => {
+      markerDuration.value = Number(e.target.value).toFixed(3);
+      const marker = getMarkerById(state.selectedMarkerId);
+      if (marker) { marker.duration = Math.max(0.05, Number(e.target.value)); updateLoopOverlay(marker); }
+    });
+    document.getElementById('markerDurationSlider').addEventListener('change', saveSelectedMarker);
+
+    // Number input → slider sync
+    markerStart.addEventListener('input', () => {
+      document.getElementById('markerStartSlider').value = markerStart.value;
+    });
+    markerDuration.addEventListener('input', () => {
+      document.getElementById('markerDurationSlider').value = markerDuration.value;
+    });
 
     fileInput.addEventListener('change', () => {
       const file = fileInput.files?.[0];
       if (!file) return;
       if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
       state.objectUrl = URL.createObjectURL(file);
+      state.videoFileName = file.name;
       video.src = state.objectUrl;
       video.load();
-      setStatus(`Loaded: ${file.name}`);
-      state.markers = [];
-      state.sequence = [];
-      state.selectedMarkerId = null;
-      state.activePadKey = null;
-      state.lastRecordedSequence = [];
+      if (state._pendingProjectLoad) {
+        // Restoring video for a loaded project — keep existing markers/sequence
+        state._pendingProjectLoad = false;
+        setStatus(`Video loaded: ${file.name}`);
+      } else {
+        // Fresh load — clear everything
+        state.markers = [];
+        state.sequence = [];
+        state.selectedMarkerId = null;
+        state.activePadKey = null;
+        state.lastRecordedSequence = [];
+        setStatus(`Loaded: ${file.name}`);
+      }
       renderAll();
     });
 
