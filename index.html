@@ -198,6 +198,18 @@
       background: #000;
     }
 
+    #ytContainer {
+      display: none;
+      aspect-ratio: 16 / 9;
+      background: #000;
+    }
+    #ytContainer iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
     /* LCD readout — dark panel with green phosphor text */
     .playhead-readout {
       display: flex;
@@ -550,12 +562,15 @@
         </div>
         <div class="row">
           <input id="fileInput" type="file" accept="video/*" />
+          <input id="ytUrlInput" type="text" placeholder="YouTube link" style="width: 200px; min-width: 0;" />
+          <button id="loadYtBtn">Load Link</button>
           <button id="loadDemoSlicesBtn">Auto-slice 10</button>
         </div>
       </div>
 
       <div class="video-wrap">
         <video id="video" playsinline preload="auto" controls></video>
+        <div id="ytContainer"><div id="ytPlayer"></div></div>
       </div>
 
       <div class="controls" style="margin-top: 10px;">
@@ -687,6 +702,9 @@
 
   <script>
     const video = document.getElementById('video');
+    const ytContainer = document.getElementById('ytContainer');
+    const ytUrlInput = document.getElementById('ytUrlInput');
+    const loadYtBtn = document.getElementById('loadYtBtn');
     const fileInput = document.getElementById('fileInput');
     const timeline = document.getElementById('timeline');
     const timelineFill = document.getElementById('timelineFill');
@@ -738,6 +756,8 @@
       playingRecordedJam: false,
       playheadMovedSinceSelect: false,
       videoFileName: null,
+      videoSource: null,
+      lastDuration: 0,
     };
 
     function uid() {
@@ -763,8 +783,136 @@
         : `<span id="recordIndicatorWrap"></span>Record Jam`;
     }
 
+    // Playback backends: local files use the <video> element, YouTube links use the IFrame Player API.
+    // The rest of the app only talks to mediaBackend, so it doesn't care which one is active.
+    const fileBackend = {
+      currentTime: () => video.currentTime || 0,
+      duration: () => (Number.isFinite(video.duration) ? video.duration : 0),
+      seek(time) {
+        if (typeof video.fastSeek === 'function') {
+          try { video.fastSeek(time); return; }
+          catch { /* fall back to setting currentTime */ }
+        }
+        video.currentTime = time;
+      },
+      play: () => video.play(),
+      pause: () => video.pause(),
+    };
+
+    let ytPlayer = null;
+    let ytReady = false;
+    let pendingYouTubeId = null;
+
+    const youtubeBackend = {
+      currentTime: () => (ytReady ? ytPlayer.getCurrentTime() : 0) || 0,
+      duration: () => (ytReady ? ytPlayer.getDuration() : 0) || 0,
+      seek(time) { if (ytReady) ytPlayer.seekTo(time, true); },
+      play() { if (ytReady) ytPlayer.playVideo(); },
+      pause() { if (ytReady) ytPlayer.pauseVideo(); },
+    };
+
+    let mediaBackend = fileBackend;
+
     function getDuration() {
-      return Number.isFinite(video.duration) ? video.duration : 0;
+      return mediaBackend.duration();
+    }
+
+    // The IFrame API calls this global once its script has loaded
+    window.onYouTubeIframeAPIReady = () => {
+      if (pendingYouTubeId && mediaBackend === youtubeBackend) {
+        createYouTubePlayer(pendingYouTubeId);
+      }
+      pendingYouTubeId = null;
+    };
+
+    function parseYouTubeId(input) {
+      const text = input.trim();
+      if (/^[\w-]{11}$/.test(text)) return text;
+      let url;
+      try { url = new URL(text); }
+      catch { return null; }
+      const host = url.hostname.replace(/^(www|m|music)\./, '');
+      let id = null;
+      if (host === 'youtu.be') {
+        id = url.pathname.slice(1).split('/')[0];
+      } else if (host === 'youtube.com') {
+        if (url.pathname === '/watch') id = url.searchParams.get('v');
+        else id = url.pathname.match(/^\/(?:embed|shorts|live|v)\/([\w-]+)/)?.[1];
+      }
+      return id && /^[\w-]{11}$/.test(id) ? id : null;
+    }
+
+    function createYouTubePlayer(videoId) {
+      const origin = /^https?:/.test(window.location.protocol) ? window.location.origin : undefined;
+      ytPlayer = new YT.Player('ytPlayer', {
+        videoId,
+        width: '100%',
+        height: '100%',
+        playerVars: { playsinline: 1, rel: 0, origin },
+        events: {
+          onReady: () => {
+            ytReady = true;
+            renderAll();
+            setStatus('Ready');
+          },
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.ENDED && !state.sequenceRunning) setStatus('Ended');
+          },
+        },
+      });
+    }
+
+    function resetProjectContent() {
+      state.markers = [];
+      state.sequence = [];
+      state.selectedMarkerId = null;
+      state.activePadKey = null;
+      state.lastRecordedSequence = [];
+    }
+
+    function useFileSource() {
+      if (ytReady) ytPlayer.pauseVideo();
+      mediaBackend = fileBackend;
+      ytContainer.style.display = 'none';
+      video.style.display = '';
+    }
+
+    function loadYouTubeSource(videoId, { keepMarkers = false } = {}) {
+      if (state.objectUrl) {
+        URL.revokeObjectURL(state.objectUrl);
+        state.objectUrl = null;
+      }
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      video.style.display = 'none';
+      ytContainer.style.display = 'block';
+      mediaBackend = youtubeBackend;
+
+      state.videoFileName = null;
+      state.videoSource = { type: 'youtube', videoId };
+      if (!keepMarkers) resetProjectContent();
+
+      if (ytPlayer) {
+        ytPlayer.cueVideoById(videoId);
+        setStatus('YouTube video loaded');
+      } else if (window.YT?.Player) {
+        createYouTubePlayer(videoId);
+        setStatus('Loading YouTube player…');
+      } else {
+        pendingYouTubeId = videoId;
+        setStatus('Loading YouTube player…');
+      }
+      renderAll();
+    }
+
+    function loadYouTubeFromInput() {
+      const videoId = parseYouTubeId(ytUrlInput.value);
+      if (!videoId) {
+        setStatus('Not a valid YouTube link');
+        return;
+      }
+      loadYouTubeSource(videoId);
     }
 
     function sortedMarkers() {
@@ -804,7 +952,7 @@
       clearSequenceTimeout();
       clearCueTimeout();
       clearJamPlaybackTimeouts();
-      video.pause();
+      mediaBackend.pause();
       setStatus('Stopped');
     }
 
@@ -812,12 +960,7 @@
       const duration = getDuration();
       if (!duration) return;
       const target = Math.max(0, Math.min(time, Math.max(0, duration - 0.001)));
-      if (typeof video.fastSeek === 'function') {
-        try { video.fastSeek(target); }
-        catch { video.currentTime = target; }
-      } else {
-        video.currentTime = target;
-      }
+      mediaBackend.seek(target);
     }
 
     function updateLoopOverlay(marker) {
@@ -849,7 +992,7 @@
       await seekNow(marker.start);
 
       try {
-        await video.play();
+        await mediaBackend.play();
       } catch (err) {
         console.warn('Playback error', err);
       }
@@ -863,7 +1006,7 @@
           return;
         }
         if (stopAtEndCheckbox.checked && !state.sequenceRunning) {
-          video.pause();
+          mediaBackend.pause();
           if (!fromLoop) setStatus(`Cue ended: ${marker.label}`);
         }
       }, stopAfterMs);
@@ -910,7 +1053,7 @@
     function renderTimeline() {
       timeline.querySelectorAll('.marker').forEach(el => el.remove());
       const duration = getDuration();
-      const progress = duration ? (video.currentTime / duration) * 100 : 0;
+      const progress = duration ? (mediaBackend.currentTime() / duration) * 100 : 0;
       timelineFill.style.width = `${progress}%`;
       playhead.style.left = `${progress}%`;
       updateLoopOverlay(getMarkerById(state.selectedMarkerId));
@@ -1021,7 +1164,7 @@
     }
 
     function renderAll() {
-      currentTimeText.textContent = fmtTime(video.currentTime || 0);
+      currentTimeText.textContent = fmtTime(mediaBackend.currentTime());
       durationText.textContent = fmtTime(getDuration());
       renderTimeline();
       renderPads();
@@ -1124,7 +1267,7 @@
           playSequenceAt(index + 1);
         } else {
           state.sequenceRunning = false;
-          if (stopAtEndCheckbox.checked) video.pause();
+          if (stopAtEndCheckbox.checked) mediaBackend.pause();
           setStatus('Jam playback complete');
         }
       }, Math.max(10, Math.round(step.duration * 1000)));
@@ -1141,9 +1284,15 @@
     }
 
     function animationLoop() {
-      currentTimeText.textContent = fmtTime(video.currentTime || 0);
       const duration = getDuration();
-      const progress = duration ? (video.currentTime / duration) * 100 : 0;
+      // YouTube only reports its duration once loaded, so re-render when it first shows up
+      if (duration !== state.lastDuration) {
+        state.lastDuration = duration;
+        renderAll();
+      }
+      const time = mediaBackend.currentTime();
+      currentTimeText.textContent = fmtTime(time);
+      const progress = duration ? (time / duration) * 100 : 0;
       timelineFill.style.width = `${progress}%`;
       playhead.style.left = `${progress}%`;
       state.rafId = requestAnimationFrame(animationLoop);
@@ -1233,6 +1382,7 @@
     function saveProjectJson() {
       const payload = {
         version: 1,
+        videoSource: state.videoSource,
         videoFileName: state.videoFileName || null,
         markers: state.markers,
         sequence: state.sequence,
@@ -1260,7 +1410,9 @@
       state.activePadKey = null;
       renderAll();
       const savedName = payload.videoFileName;
-      if (savedName) {
+      if (payload.videoSource?.type === 'youtube') {
+        loadYouTubeSource(payload.videoSource.videoId, { keepMarkers: true });
+      } else if (savedName) {
         setStatus(`Project loaded — select video file: ${savedName}`);
         // Prompt user to pick the video; we'll apply markers once it loads
         state._pendingProjectLoad = true;
@@ -1302,6 +1454,8 @@
       if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
       state.objectUrl = URL.createObjectURL(file);
       state.videoFileName = file.name;
+      state.videoSource = { type: 'file', name: file.name };
+      useFileSource();
       video.src = state.objectUrl;
       video.load();
       if (state._pendingProjectLoad) {
@@ -1310,14 +1464,15 @@
         setStatus(`Video loaded: ${file.name}`);
       } else {
         // Fresh load — clear everything
-        state.markers = [];
-        state.sequence = [];
-        state.selectedMarkerId = null;
-        state.activePadKey = null;
-        state.lastRecordedSequence = [];
+        resetProjectContent();
         setStatus(`Loaded: ${file.name}`);
       }
       renderAll();
+    });
+
+    loadYtBtn.addEventListener('click', loadYouTubeFromInput);
+    ytUrlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loadYouTubeFromInput();
     });
 
     video.addEventListener('loadedmetadata', () => {
@@ -1348,20 +1503,20 @@
       if (selectedMarker && !state.playheadMovedSinceSelect) {
         await seekNow(selectedMarker.start);
       }
-      try { await video.play(); setStatus('Playing'); } catch {}
+      try { await mediaBackend.play(); setStatus('Playing'); } catch {}
     });
 
     // Pause button — pauses at current position
     document.getElementById('pauseBtn').addEventListener('click', () => {
-      video.pause();
+      mediaBackend.pause();
       setStatus('Paused');
     });
 
-    document.getElementById('addMarkerBtn').addEventListener('click', () => addMarkerAt(video.currentTime || 0));
-    document.getElementById('jumpBackBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow((video.currentTime || 0) - 1); renderAll(); });
-    document.getElementById('jumpBackSmBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow((video.currentTime || 0) - 0.1); renderAll(); });
-    document.getElementById('jumpFwdSmBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow((video.currentTime || 0) + 0.1); renderAll(); });
-    document.getElementById('jumpFwdBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow((video.currentTime || 0) + 1); renderAll(); });
+    document.getElementById('addMarkerBtn').addEventListener('click', () => addMarkerAtmediaBackend.currentTime());
+    document.getElementById('jumpBackBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow(mediaBackend.currentTime() - 1); renderAll(); });
+    document.getElementById('jumpBackSmBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow(mediaBackend.currentTime() - 0.1); renderAll(); });
+    document.getElementById('jumpFwdSmBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow(mediaBackend.currentTime() + 0.1); renderAll(); });
+    document.getElementById('jumpFwdBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow(mediaBackend.currentTime() + 1); renderAll(); });
     document.getElementById('saveMarkerBtn').addEventListener('click', saveSelectedMarker);
     document.getElementById('deleteMarkerBtn').addEventListener('click', deleteSelectedMarker);
     document.getElementById('playMarkerBtn').addEventListener('click', () => {
@@ -1401,15 +1556,15 @@
       if (e.key === ' ') {
         e.preventDefault();
         const selectedMarker = getMarkerById(state.selectedMarkerId);
-        if (selectedMarker && !state.playheadMovedSinceSelect) seekNow(selectedMarker.start).then(() => video.play());
-        else video.play();
+        if (selectedMarker && !state.playheadMovedSinceSelect) seekNow(selectedMarker.start).then(() => mediaBackend.play());
+        else mediaBackend.play();
       }
       if (e.key.toLowerCase() === 'p') {
         e.preventDefault();
-        video.pause();
+        mediaBackend.pause();
         setStatus('Paused');
       }
-      if (e.key.toLowerCase() === 'm') addMarkerAt(video.currentTime || 0);
+      if (e.key.toLowerCase() === 'm') addMarkerAt(mediaBackend.currentTime());
       if (e.key.toLowerCase() === 'r') {
         e.preventDefault();
         toggleJamRecording();
@@ -1420,5 +1575,6 @@
     renderAll();
     animationLoop();
   </script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

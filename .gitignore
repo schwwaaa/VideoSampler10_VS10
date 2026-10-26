@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Local media and promo assets (not part of the site)
+ui_and_promo/
+*.mkv
+*.mov
+*.mp4
+*.mp3
+*.zip
+
+# Editor / tooling
+.vscode/
+.idea/
+*.swp
+.claude/settings.local.json
