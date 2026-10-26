@@ -1512,7 +1512,7 @@
       setStatus('Paused');
     });
 
-    document.getElementById('addMarkerBtn').addEventListener('click', () => addMarkerAtmediaBackend.currentTime());
+    document.getElementById('addMarkerBtn').addEventListener('click', () => addMarkerAt(mediaBackend.currentTime()));
     document.getElementById('jumpBackBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow(mediaBackend.currentTime() - 1); renderAll(); });
     document.getElementById('jumpBackSmBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow(mediaBackend.currentTime() - 0.1); renderAll(); });
     document.getElementById('jumpFwdSmBtn').addEventListener('click', async () => { state.playheadMovedSinceSelect = true; await seekNow(mediaBackend.currentTime() + 0.1); renderAll(); });
